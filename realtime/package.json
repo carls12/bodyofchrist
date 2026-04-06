@@ -1,0 +1,13 @@
+{
+  "name": "bodyofchrist2-rtc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebRTC signaling server for BodyOfChrist2",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
