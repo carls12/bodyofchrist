@@ -321,11 +321,11 @@ include __DIR__ . '/_layout_top.php';
               </div>
               <div>
                 <label style="display: block; margin-bottom: 5px; font-weight: 500;">Start Time</label>
-                <input class="form-control" type="time" name="time" id="eventTime" step="900" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <input class="form-control" type="time" name="time" id="eventTime" step="300" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
               </div>
               <div>
                 <label style="display: block; margin-bottom: 5px; font-weight: 500;">End Time (optional)</label>
-                <input class="form-control" type="time" name="end_time" id="eventEndTime" step="900" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <input class="form-control" type="time" name="end_time" id="eventEndTime" step="300" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
               </div>
               <div>
                 <input class="form-check-input" type="checkbox" id="eventAllDay" name="all_day" value="1" style="margin-right: 8px;">
