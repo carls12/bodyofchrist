@@ -22,6 +22,7 @@ db()->exec("ALTER TABLE prayer_logs ADD COLUMN IF NOT EXISTS assembly_id INT UNS
 db()->exec("ALTER TABLE prayer_logs ADD INDEX IF NOT EXISTS idx_prayer_logs_assembly (assembly_id, date)");
 db()->exec("ALTER TABLE bible_readings ADD COLUMN IF NOT EXISTS assembly_id INT UNSIGNED NULL");
 db()->exec("ALTER TABLE bible_readings ADD INDEX IF NOT EXISTS idx_bible_assembly (assembly_id, read_date)");
+ensure_goal_group_schema();
 
 $uid = auth_user()['id'];
 $today = new DateTimeImmutable('today');
@@ -52,9 +53,9 @@ $yearEnd = $today->setDate((int)$today->format('Y'), 12, 31);
 [$monthPrayer, $monthBible] = range_sum($uid, $monthStart, $monthEnd);
 [$yearPrayer, $yearBible] = range_sum($uid, $yearStart, $yearEnd);
 
-$goalStmt = db()->prepare("SELECT category, label, target, unit FROM goals
+$goalStmt = db()->prepare("SELECT category, label, group_title, target, unit FROM goals
   WHERE user_id=? AND week_start=? AND (assembly_id=? OR assembly_id IS NULL)
-  ORDER BY id ASC");
+  ORDER BY group_title ASC, id ASC");
 $goalStmt->execute([$uid, $weekStart->format('Y-m-d'), $aid]);
 $weeklyGoals = $goalStmt->fetchAll();
 
@@ -227,8 +228,8 @@ include __DIR__ . '/_layout_top.php';
                 <?php foreach ($days as $d): ?>
                   <td><?= e(rtrim(rtrim(number_format((float)($goalDaily[$category][$d] ?? 0), 2, '.', ''), '0'), '.')) ?></td>
                 <?php endforeach; ?>
-                <td><?= e(rtrim(rtrim(number_format((float)($goalTotals[$category] ?? 0), 2, '.', ''), '0'), '.')) ?> <?= e($goal['unit']) ?></td>
-                <td><?= e($goal['target']) ?> <?= e($goal['unit']) ?></td>
+                <td><?= e(rtrim(rtrim(number_format((float)($goalTotals[$category] ?? 0), 2, '.', ''), '0'), '.')) ?> <?= e(compact_goal_unit((string)$goal['unit'])) ?></td>
+                <td><?= e($goal['target']) ?> <?= e(compact_goal_unit((string)$goal['unit'])) ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>

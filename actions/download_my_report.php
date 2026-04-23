@@ -3,6 +3,7 @@ require_once __DIR__ . '/../app/middleware.php'; bootstrap_app();
 require_once __DIR__ . '/../app/auth.php'; require_auth();
 require_once __DIR__ . '/../app/db.php';
 require_once __DIR__ . '/../app/helpers.php';
+ensure_goal_group_schema();
 
 db()->exec("CREATE TABLE IF NOT EXISTS prayer_logs (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -42,6 +43,7 @@ if ($period === 'month') {
 
 $uid = auth_user()['id'];
 $aid = active_assembly_id();
+ensure_report_notes_schema();
 
 $prayer = [];
 $p = db()->prepare("SELECT date, SUM(minutes) as total FROM prayer_logs
@@ -92,15 +94,18 @@ if ($period === 'year') {
 }
 
 $weekStart = monday_of($today->format('Y-m-d'));
-$goalsStmt = db()->prepare("SELECT label, target, unit FROM goals WHERE user_id=? AND week_start=? AND (assembly_id=? OR assembly_id IS NULL) ORDER BY id ASC");
+$goalsStmt = db()->prepare("SELECT category, label, group_title, target, unit FROM goals WHERE user_id=? AND week_start=? AND (assembly_id=? OR assembly_id IS NULL) ORDER BY group_title ASC, id ASC");
 $goalsStmt->execute([$uid, $weekStart, $aid]);
 $personalGoals = $goalsStmt->fetchAll();
 $goalBreakdown = [];
-if ($period === 'week' && $personalGoals) {
-  $goalMetaStmt = db()->prepare("SELECT category, label, target, unit FROM goals
-    WHERE user_id=? AND week_start=? AND (assembly_id=? OR assembly_id IS NULL) ORDER BY id ASC");
-  $goalMetaStmt->execute([$uid, $weekStart, $aid]);
-  $goalMeta = $goalMetaStmt->fetchAll();
+
+// Always populate goal breakdown for all periods
+$goalMetaStmt = db()->prepare("SELECT category, label, group_title, target, unit FROM goals
+  WHERE user_id=? AND week_start=? AND (assembly_id=? OR assembly_id IS NULL) ORDER BY group_title ASC, id ASC");
+$goalMetaStmt->execute([$uid, $weekStart, $aid]);
+$goalMeta = $goalMetaStmt->fetchAll();
+
+if ($goalMeta) {
   $categories = array_values(array_unique(array_map(static fn($goal) => (string)$goal['category'], $goalMeta)));
   if ($categories) {
     $in = implode(',', array_fill(0, count($categories), '?'));
@@ -111,8 +116,8 @@ if ($period === 'week' && $personalGoals) {
     foreach ($goalDataStmt->fetchAll() as $row) {
       $goalBreakdown[(string)$row['category']][(string)$row['day']] = (float)$row['total'];
     }
-    $personalGoals = $goalMeta;
   }
+  $personalGoals = $goalMeta;
 }
 
 $dompdfInstalled = class_exists('Dompdf\\Dompdf');
@@ -123,53 +128,30 @@ if (!$dompdfInstalled) {
   exit;
 }
 
-$html = '<html><head><meta charset="utf-8"><style>
-  body{ font-family: DejaVu Sans, sans-serif; font-size: 12px; color:#0f172a; }
-  .card{ border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:12px; }
-  h1{ font-size:18px; margin:0 0 8px; color:#1E3A5F; }
-  table{ width:100%; border-collapse:collapse; }
-  th, td{ border-bottom:1px solid #e2e8f0; padding:8px; text-align:left; }
-  th{ background:#f8fafc; }
-  .kpi{ display:inline-block; margin-right:12px; }
-  .muted{ color:#64748b; font-size:11px; }
-</style></head><body>';
-$html .= '<h1>'.htmlspecialchars((string)auth_user()['name']).' ('.$period.')</h1>';
-$html .= '<div class="muted">'.$start->format('Y-m-d').' - '.$end->format('Y-m-d').'</div><br>';
+// Generate professional report
+$period_label = [
+  'week' => 'Weekly Report',
+  'month' => 'Monthly Report',
+  'year' => 'Yearly Report'
+][$period] ?? 'Report';
 
-if ($personalGoals) {
-  $html .= '<div class="card"><strong>My Goals (week '.$weekStart.')</strong><br><br><table><thead><tr><th>Goal</th><th>Target</th></tr></thead><tbody>';
-  foreach ($personalGoals as $g) {
-    $html .= '<tr><td>'.htmlspecialchars($g['label']).'</td><td>'.htmlspecialchars($g['target']).' '.htmlspecialchars($g['unit']).'</td></tr>';
-  }
-  $html .= '</tbody></table></div>';
-}
+$period_text = match($period) {
+  'month' => $start->format('F Y'),
+  'year' => $start->format('Y'),
+  default => 'Week ' . (int)$start->format('W')
+};
 
-if ($period === 'week' && $personalGoals) {
-  $html .= '<div class="card"><strong>Weekly Goal Breakdown</strong><br><br><table><thead><tr><th>Goal</th>';
-  $cursor = $start;
-  while ($cursor <= $end) {
-    $html .= '<th>'.$cursor->format('D d.m').'</th>';
-    $cursor = $cursor->modify('+1 day');
-  }
-  $html .= '<th>Total</th><th>Target</th></tr></thead><tbody>';
-  foreach ($personalGoals as $g) {
-    $category = (string)$g['category'];
-    $html .= '<tr><td>'.htmlspecialchars($g['label']).'</td>';
-    $goalTotal = 0.0;
-    $cursor = $start;
-    while ($cursor <= $end) {
-      $day = $cursor->format('Y-m-d');
-      $value = (float)($goalBreakdown[$category][$day] ?? 0);
-      $goalTotal += $value;
-      $html .= '<td>'.rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.').'</td>';
-      $cursor = $cursor->modify('+1 day');
-    }
-    $html .= '<td>'.rtrim(rtrim(number_format($goalTotal, 2, '.', ''), '0'), '.').' '.htmlspecialchars($g['unit']).'</td>';
-    $html .= '<td>'.htmlspecialchars($g['target']).' '.htmlspecialchars($g['unit']).'</td></tr>';
-  }
-  $html .= '</tbody></table></div>';
-}
-$html .= '</body></html>';
+$html = generate_professional_report_html(
+  'DISCIPLESHIP PROGRESS REPORT',
+  auth_user()['name'],
+  $period_text,
+  $personalGoals,
+  $goalBreakdown,
+  $start,
+  $end,
+  report_next_week_note((int)$uid, $weekStart, $aid)
+);
+
 $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);
 $dompdf->loadHtml($html, 'UTF-8');
 $dompdf->setPaper('A4', 'portrait');

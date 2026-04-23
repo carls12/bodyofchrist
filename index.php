@@ -47,8 +47,10 @@ switch ($path) {
   case '/action/register': require __DIR__ . '/actions/register_action.php'; break;
   case '/action/logout': require __DIR__ . '/actions/logout.php'; break;
   case '/action/save-goal': require __DIR__ . '/actions/save_goal.php'; break;
+  case '/action/save-report-note': require __DIR__ . '/actions/save_report_note.php'; break;
   case '/action/delete-goal': require __DIR__ . '/actions/delete_goal.php'; break;
   case '/action/save-progress': require __DIR__ . '/actions/save_progress.php'; break;
+  case '/action/save-goal-progress-batch': require __DIR__ . '/actions/save_goal_progress_batch.php'; break;
   case '/action/create-assembly': require __DIR__ . '/actions/create_assembly.php'; break;
   case '/action/join-assembly': require __DIR__ . '/actions/join_assembly.php'; break;
   case '/action/regenerate-code': require __DIR__ . '/actions/regenerate_code.php'; break;

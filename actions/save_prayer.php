@@ -43,7 +43,7 @@ db()->exec("ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS assembly_id INT 
 db()->exec("ALTER TABLE daily_progress ADD INDEX IF NOT EXISTS idx_daily_progress_assembly (assembly_id, day)");
 
 $seconds = (int)($_POST['seconds'] ?? 0);
-$minutes = (float)($_POST['minutes'] ?? 0);
+$minutes = parse_decimal_input($_POST['minutes'] ?? 0);
 $notes = trim($_POST['notes'] ?? '');
 $isFasting = isset($_POST['is_fasting']) ? 1 : 0;
 

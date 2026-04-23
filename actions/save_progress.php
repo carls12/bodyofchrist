@@ -9,7 +9,7 @@ db()->exec("ALTER TABLE daily_progress ADD INDEX IF NOT EXISTS idx_daily_progres
 $uid = auth_user()['id'];
 $day = $_POST['day'] ?? now_ymd();
 $category = trim($_POST['category'] ?? '');
-$value = (float)($_POST['value'] ?? 0);
+$value = parse_decimal_input($_POST['value'] ?? 0);
 $note = trim($_POST['note'] ?? '');
 $returnTo = trim((string)($_POST['return_to'] ?? ''));
 

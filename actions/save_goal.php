@@ -23,12 +23,14 @@ db()->exec($ddl);
 db()->exec("ALTER TABLE goals ADD COLUMN IF NOT EXISTS is_global TINYINT(1) NOT NULL DEFAULT 0");
 db()->exec("ALTER TABLE goals ADD COLUMN IF NOT EXISTS assembly_id INT UNSIGNED NULL");
 db()->exec("ALTER TABLE goals ADD INDEX IF NOT EXISTS idx_goals_assembly (assembly_id, week_start)");
+ensure_goal_group_schema();
 
 $uid = auth_user()['id'];
 $id = (int)($_POST['id'] ?? 0);
 $label = trim($_POST['label'] ?? '');
 $category = trim($_POST['category'] ?? '');
-$target = (float)($_POST['target'] ?? 0);
+$groupTitle = trim((string)($_POST['group_title'] ?? ''));
+$target = parse_decimal_input($_POST['target'] ?? 0);
 $unit = trim($_POST['unit'] ?? '');
 
 if ($label === '' || $target <= 0 || $unit === '') { flash_set('error', t('flash_goal_invalid')); redirect(base_url('goals')); }
@@ -44,8 +46,8 @@ if ($id > 0) {
       flash_set('error', t('flash_forbidden'));
       redirect(base_url('goals'));
     }
-    db()->prepare("UPDATE goals SET label=?, target=?, unit=?, assembly_id=?, updated_at=NOW() WHERE id=? AND user_id=?")
-      ->execute([$label, $target, $unit, $aid, $id, $uid]);
+    db()->prepare("UPDATE goals SET label=?, group_title=?, target=?, unit=?, assembly_id=?, updated_at=NOW() WHERE id=? AND user_id=?")
+      ->execute([$label, $groupTitle !== '' ? $groupTitle : null, $target, $unit, $aid, $id, $uid]);
     flash_set('success', t('flash_goal_saved'));
     redirect(base_url('goals'));
   }
@@ -72,9 +74,9 @@ if ((int)$exists->fetch()['c'] > 0) {
   $category = $cat2;
 }
 
-$stmt = db()->prepare("INSERT INTO goals(user_id,assembly_id,week_start,category,label,target,unit,created_at,updated_at)
-  VALUES(?,?,?,?,?,?,?,NOW(),NOW())");
-$stmt->execute([$uid, $aid, $weekStart, $category, $label, $target, $unit]);
+$stmt = db()->prepare("INSERT INTO goals(user_id,assembly_id,week_start,category,label,group_title,target,unit,created_at,updated_at)
+  VALUES(?,?,?,?,?,?,?,?,NOW(),NOW())");
+$stmt->execute([$uid, $aid, $weekStart, $category, $label, $groupTitle !== '' ? $groupTitle : null, $target, $unit]);
 
 flash_set('success', t('flash_goal_saved'));
 redirect(base_url('goals'));

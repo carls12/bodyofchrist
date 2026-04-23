@@ -210,12 +210,12 @@ include __DIR__ . '/_layout_top.php';
           <div class="text-muted small" data-goal-label><?= e($goal['label']) ?></div>
           <div class="h5 mb-2">
             <span data-goal-actual><?= e(rtrim(rtrim(number_format($actual,2,'.',''), '0'), '.')) ?></span>
-            <span data-goal-unit><?= e($goal['unit']) ?></span>
+            <span data-goal-unit><?= e(compact_goal_unit((string)$goal['unit'])) ?></span>
           </div>
           <div class="progress" role="progressbar" aria-valuenow="<?= (int)$progress ?>" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-bar" data-goal-bar style="width: <?= (int)$progress ?>%"></div>
           </div>
-          <div class="text-muted small mt-2"><span data-goal-target><?= e($goal['target']) ?></span> <?= e($goal['unit']) ?></div>
+          <div class="text-muted small mt-2"><span data-goal-target><?= e($goal['target']) ?></span> <?= e(compact_goal_unit((string)$goal['unit'])) ?></div>
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ db()->exec("ALTER TABLE bible_readings ADD COLUMN IF NOT EXISTS assembly_id INT 
 db()->exec("ALTER TABLE bible_readings ADD INDEX IF NOT EXISTS idx_bible_assembly (assembly_id, read_date)");
 db()->exec("ALTER TABLE goals ADD COLUMN IF NOT EXISTS assembly_id INT UNSIGNED NULL");
 db()->exec("ALTER TABLE goals ADD INDEX IF NOT EXISTS idx_goals_assembly (assembly_id, week_start)");
+ensure_goal_group_schema();
 
 $me = auth_user()['id'];
 $groupsStmt = db()->prepare("SELECT id,name FROM assemblies WHERE leader_id=? AND type='discipleship' ORDER BY name ASC");
@@ -65,8 +66,8 @@ if ($members) {
     $bible[(int)$r['user_id']][$r['read_date']] = (int)$r['chapters'];
   }
 
-  $g = db()->prepare("SELECT user_id, category, label, target, unit
-    FROM goals WHERE user_id IN ($in) AND week_start=? AND (assembly_id=? OR assembly_id IS NULL) ORDER BY user_id ASC, id ASC");
+  $g = db()->prepare("SELECT user_id, category, label, group_title, target, unit
+    FROM goals WHERE user_id IN ($in) AND week_start=? AND (assembly_id=? OR assembly_id IS NULL) ORDER BY user_id ASC, group_title ASC, id ASC");
   $g->execute(array_merge($userIds, [$weekStart, $groupId]));
   foreach ($g->fetchAll() as $r) {
     $goalsByUser[(int)$r['user_id']][] = $r;
@@ -247,8 +248,8 @@ include __DIR__ . '/_layout_top.php';
                             <?php foreach ($days as $d): ?>
                               <td><?= e(rtrim(rtrim(number_format((float)($goalDaily[$uid][$cat][$d] ?? 0), 2, '.', ''), '0'), '.')) ?></td>
                             <?php endforeach; ?>
-                            <td><?= e(rtrim(rtrim(number_format($actual, 2, '.', ''), '0'), '.')) ?> <?= e($g['unit']) ?></td>
-                            <td><?= e($g['target']) ?> <?= e($g['unit']) ?></td>
+                            <td><?= e(rtrim(rtrim(number_format($actual, 2, '.', ''), '0'), '.')) ?> <?= e(compact_goal_unit((string)$g['unit'])) ?></td>
+                            <td><?= e($g['target']) ?> <?= e(compact_goal_unit((string)$g['unit'])) ?></td>
                           </tr>
                         <?php endforeach; ?>
                       </tbody>

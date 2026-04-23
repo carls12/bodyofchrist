@@ -46,7 +46,7 @@ $assemblyId = (int)($_POST['assembly_id'] ?? 0);
 $userId = (int)($_POST['user_id'] ?? 0);
 $day = $_POST['day'] ?? now_ymd();
 $type = $_POST['type'] ?? '';
-$value = (float)($_POST['value'] ?? 0);
+$value = parse_decimal_input($_POST['value'] ?? 0);
 
 if ($assemblyId <= 0 || $userId <= 0 || $value <= 0) {
   flash_set('error', t('flash_progress_invalid'));

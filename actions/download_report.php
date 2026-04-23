@@ -5,6 +5,7 @@ require_once __DIR__ . '/../app/db.php';
 require_once __DIR__ . '/../app/helpers.php';
 
 if (!auth_user()['is_leader']) { http_response_code(403); die('Forbidden'); }
+ensure_goal_group_schema();
 
 db()->exec("ALTER TABLE assemblies ADD COLUMN IF NOT EXISTS type ENUM('discipleship','assembly') NOT NULL DEFAULT 'assembly'");
 db()->exec("ALTER TABLE assembly_members ADD COLUMN IF NOT EXISTS status ENUM('pending','active','inactive') NOT NULL DEFAULT 'active'");
@@ -52,9 +53,9 @@ if ($members) {
     $prayer[(int)$r['user_id']][$r['day']] = (float)$r['minutes'];
   }
 
-  $goalStmt = db()->prepare("SELECT user_id, category, label, target, unit
+  $goalStmt = db()->prepare("SELECT user_id, category, label, group_title, target, unit
     FROM goals WHERE user_id IN ($in) AND week_start=? AND (assembly_id=? OR assembly_id IS NULL)
-    ORDER BY user_id ASC, id ASC");
+    ORDER BY user_id ASC, group_title ASC, id ASC");
   $goalStmt->execute(array_merge($userIds, [$weekStart, $groupId]));
   foreach ($goalStmt->fetchAll() as $row) {
     $goalsByUser[(int)$row['user_id']][] = $row;
@@ -81,65 +82,150 @@ if ($members) {
 
 $dompdfInstalled = class_exists('Dompdf\\Dompdf');
 if (!$dompdfInstalled) { http_response_code(400); die('PDF not available'); }
-$wantPdf = true;
-if ($wantPdf && $dompdfInstalled) {
-  $html = '<html><head><meta charset="utf-8"><style>
-    body{ font-family: DejaVu Sans, Arial, sans-serif; font-size:12px; }
-    table{ width:100%; border-collapse:collapse; }
-    th,td{ border:1px solid #ddd; padding:6px; text-align:center; }
-    th{ background:#f2f2f2; }
-    td.name{ text-align:left; }
-  </style></head><body>';
-  $html .= '<h2>'.htmlspecialchars($group['name']).'</h2>';
-  $html .= '<div>Week: '.$weekStart.' - '.$weekEnd.'</div><br>';
-  $html .= '<table><thead><tr><th>#</th><th style="text-align:left">Name</th>';
-  foreach ($days as $d) $html .= '<th>'.$d.'</th>';
-  $html .= '<th>Total (min)</th></tr></thead><tbody>';
-  $i = 1;
-  foreach ($members as $m) {
-    $uid = (int)$m['id'];
-    $html .= '<tr><td>'.$i++.'</td><td class="name">'.htmlspecialchars($m['name']).'</td>';
-    $total = 0.0;
-    foreach ($days as $d) {
-      $mins = (float)($prayer[$uid][$d] ?? 0);
-      $html .= '<td>'.number_format($mins,1,'.','').'</td>';
-      $total += $mins;
-    }
-    $html .= '<td>'.number_format($total,1,'.','').'</td></tr>';
-  }
-  $html .= '</tbody></table>';
+ensure_report_notes_schema();
 
-  if ($goalsByUser) {
-    $html .= '<br><h3>Weekly Goal Breakdown</h3>';
-    foreach ($members as $m) {
-      $uid = (int)$m['id'];
-      $userGoals = $goalsByUser[$uid] ?? [];
-      if (!$userGoals) continue;
-      $html .= '<h4>'.htmlspecialchars($m['name']).'</h4>';
-      $html .= '<table><thead><tr><th style="text-align:left">Goal</th>';
-      foreach ($days as $d) $html .= '<th>'.$d.'</th>';
-      $html .= '<th>Total</th><th>Target</th></tr></thead><tbody>';
-      foreach ($userGoals as $goal) {
-        $category = (string)$goal['category'];
-        $html .= '<tr><td class="name">'.htmlspecialchars($goal['label']).'</td>';
-        foreach ($days as $d) {
-          $html .= '<td>'.rtrim(rtrim(number_format((float)($goalDaily[$uid][$category][$d] ?? 0), 2, '.', ''), '0'), '.').'</td>';
+// Generate multi-member report with the same visual language as the reference PDF.
+$css = '<style>
+  @page { margin: 8mm 10mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #ffffff; color: #2c3e50; font-family: "Segoe UI", Tahoma, Geneva, Verdana, "DejaVu Sans", sans-serif; font-size: 8.8pt; line-height: 1.2; }
+  .report-header { background: #2c3e50; color: #ffffff; padding: 15px 20px 14px; text-align: center; }
+  .report-header h1 { margin: 0 0 5px; font-size: 16pt; line-height: 1.15; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
+  .report-meta { font-size: 9pt; font-weight: 400; color: #f8f9fa; }
+  .member-report { page-break-before: always; margin-bottom: 8px; }
+  .member-report.first-member { page-break-before: auto; }
+  .section-bar { margin: 8px 0 5px; background: #ffffff; color: #2c3e50; padding: 0 0 3px; border-bottom: 1.2px solid #2c3e50; font-size: 11.5pt; line-height: 1.15; font-weight: 700; letter-spacing: 0; text-transform: none; }
+  .metric-grid { width: 100%; border-collapse: collapse; margin: 0 0 8px; table-layout: fixed; }
+  .metric-grid td { background: #f8f9fa; border: 1px solid #dddddd; padding: 5px 7px; vertical-align: top; }
+  .metric-label { display: block; color: #6c757d; font-size: 8.5pt; font-weight: 700; letter-spacing: 0; text-transform: none; }
+  .metric-value { display: block; margin-top: 2px; color: #2c3e50; font-size: 8.8pt; font-weight: 400; }
+  .section { margin-bottom: 8px; page-break-inside: auto; }
+  table.report-table { width: 100%; border-collapse: collapse; margin-bottom: 7px; table-layout: fixed; }
+  .report-table th { background: #f8f9fa; border: 1px solid #dddddd; color: #2c3e50; padding: 4px 5px; font-size: 8.7pt; line-height: 1.2; font-weight: 700; text-align: center; text-transform: none; }
+  .report-table th:first-child, .report-table td:first-child { text-align: left; }
+  .report-table td { border: 1px solid #dddddd; padding: 4px 5px; font-size: 8.7pt; line-height: 1.2; font-weight: 400; text-align: center; vertical-align: middle; }
+  .report-table tbody tr:nth-child(even) td { background: #fbfcfd; }
+  .name-col { width: 30%; }
+  .status { font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+  .status-exceeded, .status-met { color: #1f7a3a; }
+  .status-partial { color: #b86400; }
+  .status-missed { color: #b42318; }
+  .empty { border: 1px solid #dddddd; background: #f8f9fa; padding: 8px; color: #6c757d; font-size: 9pt; line-height: 1.2; }
+  .planning-note { border-left: 4px solid #2c3e50; background: #f8f9fa; padding: 7px 9px; margin: 0 0 8px; font-size: 9pt; line-height: 1.2; white-space: pre-line; }
+  .report-footer { margin-top: 8px; padding-top: 5px; border-top: 1px solid #dddddd; color: #6c757d; font-size: 8pt; line-height: 1.2; text-align: center; }
+</style>';
+
+$html = '<html><head><meta charset="utf-8">' . $css . '</head><body>';
+
+// Group header
+$html .= '<div class="report-header">';
+$html .= '<h1>GROUP DISCIPLESHIP REPORTS</h1>';
+$html .= '<div class="report-meta">';
+$html .= 'Group: ' . htmlspecialchars($group['name']) . ' | Period: ' . htmlspecialchars($weekStart) . ' - ' . htmlspecialchars($weekEnd);
+$html .= '</div></div>';
+
+$html .= '<div class="section-bar">Report Overview</div>';
+$html .= '<table class="metric-grid"><tr>';
+$html .= '<td><span class="metric-label">Group</span><span class="metric-value">' . htmlspecialchars($group['name']) . '</span></td>';
+$html .= '<td><span class="metric-label">Disciples</span><span class="metric-value">' . count($members) . '</span></td>';
+$html .= '<td><span class="metric-label">Start</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekStart))->format('M d, Y')) . '</span></td>';
+$html .= '<td><span class="metric-label">End</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekEnd))->format('M d, Y')) . '</span></td>';
+$html .= '</tr></table>';
+
+// Generate report for each member
+$firstMember = true;
+foreach ($members as $member) {
+  $uid = (int)$member['id'];
+  $memberGoals = $goalsByUser[$uid] ?? [];
+  $memberDaily = $goalDaily[$uid] ?? [];
+  
+  $html .= '<div class="member-report' . ($firstMember ? ' first-member' : '') . '">';
+  $firstMember = false;
+  $html .= '<div class="section-bar">Disciple: ' . htmlspecialchars($member['name']) . '</div>';
+  $html .= '<table class="metric-grid"><tr>';
+  $html .= '<td><span class="metric-label">Disciple</span><span class="metric-value">' . htmlspecialchars($member['name']) . '</span></td>';
+  $html .= '<td><span class="metric-label">Week Start</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekStart))->format('M d, Y')) . '</span></td>';
+  $html .= '<td><span class="metric-label">Week End</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekEnd))->format('M d, Y')) . '</span></td>';
+  $html .= '<td><span class="metric-label">Generated</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable('now'))->format('M d, Y')) . '</span></td>';
+  $html .= '</tr></table>';
+  
+  if ($memberGoals) {
+    // Group goals by category
+    $goalsByCategory = [];
+    foreach ($memberGoals as $goal) {
+      $cat = default_goal_group_title($goal);
+      if (!isset($goalsByCategory[$cat])) $goalsByCategory[$cat] = [];
+      $goalsByCategory[$cat][] = $goal;
+    }
+    
+    // Generate section for each category
+    foreach ($goalsByCategory as $category => $catGoals) {
+      $html .= '<div class="section">';
+      $html .= '<div class="section-bar">' . htmlspecialchars($category) . '</div>';
+      
+      $html .= '<table class="report-table">';
+      $html .= '<thead><tr><th class="name-col">Metric</th><th>Actual</th><th>Goal</th><th>Status</th></tr></thead>';
+      $html .= '<tbody>';
+      
+      foreach ($catGoals as $goal) {
+        $goalCat = (string)$goal['category'];
+        $total = (float)($goalTotals[$uid][$goalCat] ?? 0);
+        $target = (float)$goal['target'];
+        $percent = $target > 0 ? ($total / $target * 100) : 0;
+        
+        if ($percent >= 100) {
+          $status = 'Completed';
+          $statusClass = 'status-exceeded';
+        } elseif ($percent >= 80) {
+          $status = 'On Track';
+          $statusClass = 'status-met';
+        } elseif ($percent >= 50) {
+          $status = 'Partial';
+          $statusClass = 'status-partial';
+        } else {
+          $status = 'Missed';
+          $statusClass = 'status-missed';
         }
-        $html .= '<td>'.rtrim(rtrim(number_format((float)($goalTotals[$uid][$category] ?? 0), 2, '.', ''), '0'), '.').' '.htmlspecialchars($goal['unit']).'</td>';
-        $html .= '<td>'.htmlspecialchars($goal['target']).' '.htmlspecialchars($goal['unit']).'</td></tr>';
+        
+        $totalStr = rtrim(rtrim(number_format($total, 1, '.', ''), '0'), '.');
+        $targetStr = rtrim(rtrim(number_format($target, 1, '.', ''), '0'), '.');
+        $unit = compact_goal_unit((string)$goal['unit']);
+        
+        $html .= '<tr>';
+        $html .= '<td class="name">' . htmlspecialchars($goal['label']) . '</td>';
+        $html .= '<td>' . $totalStr . ' ' . htmlspecialchars($unit) . '</td>';
+        $html .= '<td>' . $targetStr . ' ' . htmlspecialchars($unit) . '</td>';
+        $html .= '<td class="status ' . $statusClass . '">' . htmlspecialchars($status) . '</td>';
+        $html .= '</tr>';
       }
-      $html .= '</tbody></table><br>';
+      
+      $html .= '</tbody></table>';
+      
+      $html .= '</div>';
     }
+  } else {
+    $html .= '<div class="empty">No goals set for this member this week.</div>';
   }
 
-  $html .= '</body></html>';
-
-  $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);
-  $dompdf->loadHtml($html, 'UTF-8');
-  $dompdf->setPaper('A4', 'landscape');
-  $dompdf->render();
-  header('Content-Type: application/pdf');
-  header('Content-Disposition: attachment; filename="report-'.$groupId.'-'.$weekStart.'.pdf"');
-  echo $dompdf->output();
-  exit;
+  $nextWeekNotes = report_next_week_note($uid, $weekStart, $groupId);
+  if (trim($nextWeekNotes) !== '') {
+    $html .= '<div class="section">';
+    $html .= '<div class="section-bar">5. Other Planned Important Goals for Next Week</div>';
+    $html .= '<div class="planning-note">' . nl2br(htmlspecialchars(trim($nextWeekNotes))) . '</div>';
+    $html .= '</div>';
+  }
+  
+  $html .= '</div>';
 }
+
+$html .= '<div class="report-footer">BodyOfChrist Discipleship Report</div>';
+$html .= '</body></html>';
+
+$dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);
+$dompdf->loadHtml($html, 'UTF-8');
+$dompdf->setPaper('A4', 'portrait');
+$dompdf->render();
+header('Content-Type: application/pdf');
+header('Content-Disposition: attachment; filename="report-'.$groupId.'-'.$weekStart.'.pdf"');
+echo $dompdf->output();
+exit;

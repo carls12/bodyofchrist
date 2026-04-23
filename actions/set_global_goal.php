@@ -22,7 +22,7 @@ db()->exec("CREATE TABLE IF NOT EXISTS global_goals (
 
 $category = strtolower(trim($_POST['category'] ?? ''));
 $label = trim($_POST['label'] ?? '');
-$target = (float)($_POST['target'] ?? 0);
+$target = parse_decimal_input($_POST['target'] ?? 0);
 $unit = trim($_POST['unit'] ?? '');
 
 if ($category === '' || $label === '' || $target <= 0 || $unit === '') {
