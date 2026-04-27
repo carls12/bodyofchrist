@@ -24,6 +24,126 @@ if ($base !== '' && str_starts_with($reqPath, $base)) {
   $reqPath = substr($reqPath, strlen($base));
 }
 $reqPath = '/' . ltrim($reqPath, '/');
+$mobilePrimaryNav = [];
+$mobileMoreNav = [];
+if (auth_check()) {
+  $mobilePrimaryNav = [
+    [
+      'href' => base_url('dashboard'),
+      'active' => ($reqPath==='/' || $reqPath==='/dashboard'),
+      'label' => t('nav_home'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M9 21V9h6v12"/></svg>',
+    ],
+    [
+      'href' => base_url('goals'),
+      'active' => ($reqPath==='/goals'),
+      'label' => t('nav_goals'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+    ],
+    [
+      'href' => base_url('prayer'),
+      'active' => ($reqPath==='/prayer'),
+      'label' => t('nav_timer'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2s4 4 4 8a4 4 0 0 1-8 0c0-4 4-8 4-8z"/><path d="M5 22h14"/></svg>',
+    ],
+  ];
+
+  $mobileMoreNav = [
+    [
+      'href' => base_url('chat'),
+      'active' => ($reqPath==='/chat'),
+      'label' => t('nav_chat'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
+    ],
+    [
+      'href' => base_url('bible'),
+      'active' => ($reqPath==='/bible'),
+      'label' => t('nav_bible'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12a3 3 0 0 1 3 3v13"/><path d="M4 4v15a2 2 0 0 0 2 2h13"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>',
+    ],
+    [
+      'href' => base_url('progress'),
+      'active' => ($reqPath==='/progress'),
+      'label' => t('nav_progress'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M6 16l4-4 3 3 5-6"/></svg>',
+    ],
+    [
+      'href' => base_url('goal-history'),
+      'active' => ($reqPath==='/goal-history'),
+      'label' => t('nav_goal_history'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 6.3L3 8"/><path d="M12 7v5l3 2"/></svg>',
+    ],
+    [
+      'href' => base_url('calendar'),
+      'active' => ($reqPath==='/calendar'),
+      'label' => t('nav_calendar'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',
+    ],
+    [
+      'href' => base_url('daily-planner'),
+      'active' => ($reqPath==='/daily-planner'),
+      'label' => t('nav_daily_planner'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M5 6h.01"/><path d="M5 12h.01"/><path d="M5 18h.01"/></svg>',
+    ],
+    [
+      'href' => base_url('assemblies'),
+      'active' => ($reqPath==='/assemblies' || str_starts_with($reqPath, '/assemblies')),
+      'label' => t('nav_assemblies'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-7a4 4 0 0 0-8 0v7"/><path d="M7 21h10"/><path d="M12 3a4 4 0 1 1-4 4 4 4 0 0 1 4-4z"/></svg>',
+    ],
+    [
+      'href' => base_url('quizzes'),
+      'active' => ($reqPath==='/quizzes' || str_starts_with($reqPath, '/quiz')),
+      'label' => t('nav_quiz'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+    ],
+    [
+      'href' => base_url('my-reports'),
+      'active' => ($reqPath==='/my-reports'),
+      'label' => t('nav_my_reports'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 16V8"/><path d="M12 16V4"/><path d="M17 16v-6"/></svg>',
+    ],
+    [
+      'href' => base_url('profile'),
+      'active' => ($reqPath==='/profile'),
+      'label' => t('nav_profile'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    ],
+  ];
+
+  if (auth_user()['is_leader']) {
+    $mobileMoreNav[] = [
+      'href' => base_url('reports'),
+      'active' => ($reqPath==='/reports'),
+      'label' => t('nav_reports'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 16V8"/><path d="M12 16V4"/><path d="M17 16v-6"/></svg>',
+    ];
+  }
+  if (is_main_admin()) {
+    $mobileMoreNav[] = [
+      'href' => base_url('admin/users'),
+      'active' => ($reqPath==='/admin/users'),
+      'label' => t('nav_admin'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/><path d="M19 8v6"/></svg>',
+    ];
+  }
+  if (is_regional_leader() || is_main_admin()) {
+    $mobileMoreNav[] = [
+      'href' => base_url('admin/assemblies'),
+      'active' => ($reqPath==='/admin/assemblies'),
+      'label' => t('admin_assemblies'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-6 9 6"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
+    ];
+  }
+  if (is_national_leader() || is_main_admin()) {
+    $mobileMoreNav[] = [
+      'href' => base_url('admin/national'),
+      'active' => ($reqPath==='/admin/national'),
+      'label' => t('admin_national_reports'),
+      'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/><path d="M6 3v18"/><path d="M12 3v18"/><path d="M18 3v18"/></svg>',
+    ];
+  }
+}
 ?>
 <!doctype html>
 <html lang="<?= e($_SESSION['locale'] ?? 'de') ?>">
@@ -205,23 +325,21 @@ $reqPath = '/' . ltrim($reqPath, '/');
     .app-bottom-nav{
       display:none;
       position:fixed;
-      bottom:16px;
-      left:16px;
-      right:16px;
+      bottom:0;
+      left:0;
+      right:0;
       background:rgba(255,255,255,.95);
-      border:1px solid var(--border);
-      border-radius:18px;
-      padding:10px 14px;
-      box-shadow:var(--shadow);
-      z-index:10;
+      border-top:1px solid var(--border);
+      padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+      box-shadow:0 -8px 24px rgba(15,26,43,.08);
+      z-index:1040;
       backdrop-filter: blur(6px);
-      gap:10px;
-      overflow-x:auto;
-      overscroll-behavior-x:contain;
-      -webkit-overflow-scrolling:touch;
+      justify-content:space-between;
+      align-items:stretch;
+      gap:8px;
     }
     .app-bottom-nav a{
-      flex:0 0 auto;
+      flex:1 1 0;
       display:flex;
       flex-direction:column;
       align-items:center;
@@ -230,14 +348,69 @@ $reqPath = '/' . ltrim($reqPath, '/');
       text-decoration:none;
       color:var(--muted);
       font-weight:600;
-      min-width:72px;
+      min-width:0;
+      padding:6px 4px;
+      border-radius:12px;
     }
-    .app-bottom-nav a.active{
+    .app-bottom-nav button{
+      flex:1 1 0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      font-size:.7rem;
+      color:var(--muted);
+      font-weight:600;
+      min-width:0;
+      padding:6px 4px;
+      border:0;
+      background:transparent;
+      border-radius:12px;
+    }
+    .app-bottom-nav a.active,
+    .app-bottom-nav button.active{
       color:var(--deep-blue);
+      background:rgba(30,58,95,.06);
     }
     .app-bottom-nav svg{
       width:18px;
       height:18px;
+    }
+    .app-mobile-sheet.offcanvas{
+      height:75vh;
+      border-top-left-radius:22px;
+      border-top-right-radius:22px;
+    }
+    .app-mobile-sheet .offcanvas-header{
+      border-bottom:1px solid var(--border);
+    }
+    .app-mobile-sheet-list{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:10px;
+    }
+    .app-mobile-sheet-link{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      text-decoration:none;
+      color:var(--ink);
+      background:#fff;
+      font-weight:600;
+    }
+    .app-mobile-sheet-link.active{
+      border-color:rgba(212,165,116,.5);
+      background:rgba(212,165,116,.12);
+      color:var(--deep-blue);
+    }
+    .app-mobile-sheet-link svg{
+      width:18px;
+      height:18px;
+      flex:0 0 auto;
     }
     .global-call-toast{
       position:fixed;
@@ -253,7 +426,7 @@ $reqPath = '/' . ltrim($reqPath, '/');
       .app-topbar{ position:sticky; top:14px; z-index:5; }
       .app-main{ padding:16px; }
       .app-bottom-nav{ display:flex; }
-      .app-content{ padding-bottom:80px; }
+      .app-content{ padding-bottom:92px; }
     }
     @media (max-width: 575.98px){
       .app-shell{ padding:10px; }
@@ -268,7 +441,7 @@ $reqPath = '/' . ltrim($reqPath, '/');
       .mb-4{ margin-bottom:1rem !important; }
       .mb-3{ margin-bottom:.75rem !important; }
       .row.g-3{ --bs-gutter-y:.75rem; --bs-gutter-x:.75rem; }
-      .app-bottom-nav{ bottom:10px; left:10px; right:10px; padding:8px 10px; }
+      .app-mobile-sheet-list{ grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -288,6 +461,10 @@ $reqPath = '/' . ltrim($reqPath, '/');
         <a class="app-nav-link <?= $reqPath==='/goals' ? 'active' : '' ?>" href="<?= e(base_url('goals')) ?>">
           <svg class="app-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
           <?= e(t('nav_goals')) ?>
+        </a>
+        <a class="app-nav-link <?= $reqPath==='/goal-history' ? 'active' : '' ?>" href="<?= e(base_url('goal-history')) ?>">
+          <svg class="app-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 6.3L3 8"/><path d="M12 7v5l3 2"/></svg>
+          <?= e(t('nav_goal_history')) ?>
         </a>
         <a class="app-nav-link <?= $reqPath==='/bible' ? 'active' : '' ?>" href="<?= e(base_url('bible')) ?>">
           <svg class="app-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12a3 3 0 0 1 3 3v13"/><path d="M4 4v15a2 2 0 0 0 2 2h13"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>

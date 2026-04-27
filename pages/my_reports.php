@@ -28,6 +28,23 @@ $uid = auth_user()['id'];
 $today = new DateTimeImmutable('today');
 $aid = active_assembly_id();
 
+$availableWeeksStmt = db()->prepare("SELECT week_start FROM goals
+  WHERE user_id=? AND (assembly_id=? OR assembly_id IS NULL)
+  GROUP BY week_start
+  ORDER BY week_start DESC");
+$availableWeeksStmt->execute([$uid, $aid]);
+$availableWeeks = array_map(static fn($row) => (string)$row['week_start'], $availableWeeksStmt->fetchAll());
+
+$requestedWeek = (string)($_GET['week_start'] ?? '');
+$selectedWeekStart = monday_of($today->format('Y-m-d'));
+if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $requestedWeek)) {
+  $selectedWeekStart = monday_of($requestedWeek);
+}
+if (!in_array($selectedWeekStart, $availableWeeks, true)) {
+  array_unshift($availableWeeks, $selectedWeekStart);
+  $availableWeeks = array_values(array_unique($availableWeeks));
+}
+
 function range_sum($uid, DateTimeImmutable $start, DateTimeImmutable $end): array {
   $aid = active_assembly_id();
   $p = db()->prepare("SELECT SUM(COALESCE(seconds, minutes*60)) as total_seconds FROM prayer_logs WHERE user_id=? AND date BETWEEN ? AND ? AND (assembly_id=? OR assembly_id IS NULL)");
@@ -41,7 +58,7 @@ function range_sum($uid, DateTimeImmutable $start, DateTimeImmutable $end): arra
   return [$prayer, $bible];
 }
 
-$weekStart = new DateTimeImmutable(monday_of($today->format('Y-m-d')));
+$weekStart = new DateTimeImmutable($selectedWeekStart);
 $weekEnd = $weekStart->modify('+6 days');
 $weekNo = $weekStart->format('W');
 $monthStart = $today->modify('first day of this month');
@@ -121,12 +138,24 @@ include __DIR__ . '/_layout_top.php';
     <div class="card">
       <div class="card-body">
         <div class="fw-semibold mb-2"><?= e(t('my_reports_weekly')) ?></div>
+        <form method="get" class="d-grid gap-2 mb-2">
+          <label class="form-label small mb-0"><?= e(t('goal_history_select_week')) ?></label>
+          <select class="form-select form-select-sm" name="week_start">
+            <?php foreach ($availableWeeks as $week): ?>
+              <?php $startOpt = new DateTimeImmutable($week); $endOpt = $startOpt->modify('+6 days'); ?>
+              <option value="<?= e($week) ?>" <?= $week === $weekStart->format('Y-m-d') ? 'selected' : '' ?>>
+                KW <?= e($startOpt->format('W')) ?>: <?= e($startOpt->format('d.m.Y')) ?> - <?= e($endOpt->format('d.m.Y')) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <button class="btn btn-sm btn-outline-primary"><?= e(t('bible_show')) ?></button>
+        </form>
         <div class="text-muted small mb-2"><?= e($weekStart->format('d.m.Y')) ?> - <?= e($weekEnd->format('d.m.Y')) ?></div>
         <div class="text-muted small"><?= e(t('my_reports_prayer')) ?>: <?= e(number_format($weekPrayer,1)) ?></div>
         <div class="text-muted small"><?= e(t('my_reports_bible')) ?>: <?= (int)$weekBible ?></div>
         <?php if (class_exists('Dompdf\\Dompdf')): ?>
           <div class="d-flex gap-2 mt-2">
-            <a class="btn btn-sm btn-outline-primary" href="<?= e(base_url('action/download-my-report?period=week&pdf=1')) ?>"><?= e(t('my_reports_download_pdf')) ?></a>
+            <a class="btn btn-sm btn-outline-primary" href="<?= e(base_url('action/download-my-report?period=week&week_start=' . rawurlencode($weekStart->format('Y-m-d')) . '&pdf=1')) ?>"><?= e(t('my_reports_download_pdf')) ?></a>
           </div>
         <?php endif; ?>
       </div>

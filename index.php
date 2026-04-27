@@ -19,6 +19,7 @@ switch ($path) {
   case '/register': require __DIR__ . '/pages/register.php'; break;
   case '/dashboard': require __DIR__ . '/pages/dashboard.php'; break;
   case '/goals': require __DIR__ . '/pages/goals.php'; break;
+  case '/goal-history': require __DIR__ . '/pages/goal_history.php'; break;
   case '/progress': require __DIR__ . '/pages/progress.php'; break;
   case '/assemblies': require __DIR__ . '/pages/assemblies.php'; break;
   case '/assemblies/show': require __DIR__ . '/pages/assembly_show.php'; break;
@@ -47,6 +48,9 @@ switch ($path) {
   case '/action/register': require __DIR__ . '/actions/register_action.php'; break;
   case '/action/logout': require __DIR__ . '/actions/logout.php'; break;
   case '/action/save-goal': require __DIR__ . '/actions/save_goal.php'; break;
+  case '/action/carry-goal-next-week': require __DIR__ . '/actions/carry_goal_next_week.php'; break;
+  case '/action/repeat-goals-next-week': require __DIR__ . '/actions/repeat_goals_next_week.php'; break;
+  case '/action/copy-goal-to-week': require __DIR__ . '/actions/copy_goal_to_week.php'; break;
   case '/action/save-report-note': require __DIR__ . '/actions/save_report_note.php'; break;
   case '/action/delete-goal': require __DIR__ . '/actions/delete_goal.php'; break;
   case '/action/save-progress': require __DIR__ . '/actions/save_progress.php'; break;

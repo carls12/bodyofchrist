@@ -9,10 +9,11 @@ db()->exec("ALTER TABLE daily_progress ADD INDEX IF NOT EXISTS idx_daily_progres
 $uid = (int)auth_user()['id'];
 $aid = active_assembly_id();
 $entries = $_POST['entries'] ?? [];
+$returnTo = trim((string)($_POST['return_to'] ?? ''));
 
 if (!is_array($entries)) {
   flash_set('error', t('flash_progress_invalid'));
-  redirect(base_url('goals'));
+  redirect($returnTo !== '' ? $returnTo : base_url('goals'));
 }
 
 $deleteWithAssembly = db()->prepare("DELETE FROM daily_progress WHERE user_id=? AND day=? AND category=? AND (assembly_id=? OR assembly_id IS NULL)");
@@ -53,4 +54,4 @@ if ($saved > 0) {
   flash_set('error', t('flash_progress_invalid'));
 }
 
-redirect(base_url('goals'));
+redirect($returnTo !== '' ? $returnTo : base_url('goals'));

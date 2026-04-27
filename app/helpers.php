@@ -115,9 +115,41 @@ function ensure_goal_group_schema(): void {
   db()->exec("ALTER TABLE goals ADD INDEX IF NOT EXISTS idx_goals_group_title (group_title)");
 }
 
+function report_date_display(DateTimeImmutable $date): string {
+  $loc = $_SESSION['locale'] ?? 'de';
+  if ($loc === 'en') {
+    return $date->format('M d, Y');
+  }
+  return $date->format('d.m.Y');
+}
+
+function default_goal_group_map(): array {
+  return [
+    'goals_group_default_spiritual' => '1. Spiritual Activity',
+    'goals_group_default_scripture' => '2. Scripture Engagement',
+    'goals_group_default_university' => '3. University Study & Preparation',
+    'goals_group_default_evangelism' => '4. Evangelism & Soul Winning',
+    'goals_group_default_other' => '5. Other Important Goals',
+  ];
+}
+
+function normalize_goal_group_title(?string $groupTitle): string {
+  $title = trim((string)$groupTitle);
+  if ($title === '') {
+    return '';
+  }
+
+  $map = default_goal_group_map();
+  if (isset($map[$title])) {
+    return $map[$title];
+  }
+
+  return $title;
+}
+
 function default_goal_group_title(array $goal): string {
   $text = strtolower((string)($goal['group_title'] ?? '') . ' ' . (string)($goal['category'] ?? '') . ' ' . (string)($goal['label'] ?? ''));
-  $explicit = trim((string)($goal['group_title'] ?? ''));
+  $explicit = normalize_goal_group_title((string)($goal['group_title'] ?? ''));
   if ($explicit !== '') return $explicit;
 
   if (preg_match('/prayer|pray|gebet|worship|praise|fast|retreat/', $text)) {
@@ -227,43 +259,43 @@ function generate_professional_report_html(
   };
   $status_for = static function(float $actual, float $target): array {
     $percent = $target > 0 ? ($actual / $target * 100) : 0;
-    if ($percent >= 100) return ['Completed', 'status-exceeded'];
-    if ($percent >= 80) return ['On Track', 'status-met'];
-    if ($percent >= 50) return ['Partial', 'status-partial'];
-    return ['Missed', 'status-missed'];
+    if ($percent >= 100) return [t('report_status_completed'), 'status-exceeded'];
+    if ($percent >= 80) return [t('report_status_on_track'), 'status-met'];
+    if ($percent >= 50) return [t('report_status_partial'), 'status-partial'];
+    return [t('report_status_missed'), 'status-missed'];
   };
 
   $html = '<html><head><meta charset="utf-8">' . $css . '</head><body>';
 
   $html .= '<div class="report-header">';
   $html .= '<h1>' . htmlspecialchars($title) . '</h1>';
-  $html .= '<div class="report-meta">Disciple: ' . htmlspecialchars($name) . ' | Period: ' . htmlspecialchars($period_text) . '</div>';
+  $html .= '<div class="report-meta">' . htmlspecialchars(t('report_disciple')) . ': ' . htmlspecialchars($name) . ' | ' . htmlspecialchars(t('report_period')) . ': ' . htmlspecialchars($period_text) . '</div>';
   $html .= '</div>';
 
-  $html .= '<div class="section-bar">Report Overview</div>';
+  $html .= '<div class="section-bar">' . htmlspecialchars(t('report_overview')) . '</div>';
   $html .= '<table class="metric-grid"><tr>';
-  $html .= '<td><span class="metric-label">Disciple</span><span class="metric-value">' . htmlspecialchars($name) . '</span></td>';
-  $html .= '<td><span class="metric-label">Start</span><span class="metric-value">' . htmlspecialchars($start->format('M d, Y')) . '</span></td>';
-  $html .= '<td><span class="metric-label">End</span><span class="metric-value">' . htmlspecialchars($end->format('M d, Y')) . '</span></td>';
-  $html .= '<td><span class="metric-label">Generated</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable('now'))->format('M d, Y')) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_disciple')) . '</span><span class="metric-value">' . htmlspecialchars($name) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_start')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display($start)) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_end')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display($end)) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_generated')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display(new DateTimeImmutable('now'))) . '</span></td>';
   $html .= '</tr></table>';
 
   if (!$goals_by_category) {
-    $html .= '<div class="empty">No goals set for this report period.</div>';
+    $html .= '<div class="empty">' . htmlspecialchars(t('report_no_goals_period')) . '</div>';
   } else {
     foreach ($goals_by_category as $category => $category_goals) {
-    $section_title = ucfirst(str_replace('_', ' ', $category));
+    $section_title = (string)$category;
 
     $html .= '<div class="section">';
     $html .= '<div class="section-bar">' . htmlspecialchars($section_title) . '</div>';
 
     $html .= '<table class="report-table">';
     $html .= '<thead><tr>';
-    $html .= '<th class="name-col">Activity</th>';
-    $html .= '<th>Actual</th>';
-    $html .= '<th>Goal</th>';
-    $html .= '<th>Difference</th>';
-    $html .= '<th>Status</th>';
+    $html .= '<th class="name-col">' . htmlspecialchars(t('report_activity')) . '</th>';
+    $html .= '<th>' . htmlspecialchars(t('report_actual')) . '</th>';
+    $html .= '<th>' . htmlspecialchars(t('report_goal')) . '</th>';
+    $html .= '<th>' . htmlspecialchars(t('report_difference')) . '</th>';
+    $html .= '<th>' . htmlspecialchars(t('report_status')) . '</th>';
     $html .= '</tr></thead>';
     $html .= '<tbody>';
 
@@ -294,12 +326,12 @@ function generate_professional_report_html(
 
   if (trim($next_week_notes) !== '') {
     $html .= '<div class="section">';
-    $html .= '<div class="section-bar">5. Other Planned Important Goals for Next Week</div>';
+    $html .= '<div class="section-bar">' . htmlspecialchars(t('report_next_week_title')) . '</div>';
     $html .= '<div class="planning-note">' . nl2br(htmlspecialchars(trim($next_week_notes))) . '</div>';
     $html .= '</div>';
   }
 
-  $html .= '<div class="report-footer">BodyOfChrist Discipleship Report</div>';
+  $html .= '<div class="report-footer">' . htmlspecialchars(t('report_footer')) . '</div>';
   $html .= '</body></html>';
 
   return $html;

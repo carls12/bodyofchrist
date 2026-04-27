@@ -29,6 +29,7 @@ db()->exec("ALTER TABLE goals ADD INDEX IF NOT EXISTS idx_goals_assembly (assemb
 
 $period = $_GET['period'] ?? 'week';
 $today = new DateTimeImmutable('today');
+$requestedWeek = (string)($_GET['week_start'] ?? '');
 
 if ($period === 'month') {
   $start = $today->modify('first day of this month');
@@ -37,7 +38,8 @@ if ($period === 'month') {
   $start = $today->setDate((int)$today->format('Y'), 1, 1);
   $end = $today->setDate((int)$today->format('Y'), 12, 31);
 } else {
-  $start = new DateTimeImmutable(monday_of($today->format('Y-m-d')));
+  $weekDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $requestedWeek) ? $requestedWeek : $today->format('Y-m-d');
+  $start = new DateTimeImmutable(monday_of($weekDate));
   $end = $start->modify('+6 days');
 }
 
@@ -46,10 +48,10 @@ $aid = active_assembly_id();
 ensure_report_notes_schema();
 
 $prayer = [];
-$p = db()->prepare("SELECT date, SUM(minutes) as total FROM prayer_logs
+$p = db()->prepare("SELECT date, SUM(COALESCE(seconds, minutes*60)) as total_seconds FROM prayer_logs
   WHERE user_id=? AND date BETWEEN ? AND ? AND (assembly_id=? OR assembly_id IS NULL) GROUP BY date");
 $p->execute([$uid, $start->format('Y-m-d'), $end->format('Y-m-d'), $aid]);
-foreach ($p->fetchAll() as $r) $prayer[$r['date']] = (float)$r['total'];
+foreach ($p->fetchAll() as $r) $prayer[$r['date']] = ((int)$r['total_seconds']) / 60.0;
 
 $bible = [];
 $b = db()->prepare("SELECT read_date, COUNT(*) as chapters FROM bible_readings
@@ -93,7 +95,7 @@ if ($period === 'year') {
   }
 }
 
-$weekStart = monday_of($today->format('Y-m-d'));
+$weekStart = $period === 'week' ? $start->format('Y-m-d') : monday_of($today->format('Y-m-d'));
 $goalsStmt = db()->prepare("SELECT category, label, group_title, target, unit FROM goals WHERE user_id=? AND week_start=? AND (assembly_id=? OR assembly_id IS NULL) ORDER BY group_title ASC, id ASC");
 $goalsStmt->execute([$uid, $weekStart, $aid]);
 $personalGoals = $goalsStmt->fetchAll();
@@ -128,21 +130,14 @@ if (!$dompdfInstalled) {
   exit;
 }
 
-// Generate professional report
-$period_label = [
-  'week' => 'Weekly Report',
-  'month' => 'Monthly Report',
-  'year' => 'Yearly Report'
-][$period] ?? 'Report';
-
 $period_text = match($period) {
   'month' => $start->format('F Y'),
   'year' => $start->format('Y'),
-  default => 'Week ' . (int)$start->format('W')
+  default => t('report_week_label', ['week' => (int)$start->format('W')])
 };
 
 $html = generate_professional_report_html(
-  'DISCIPLESHIP PROGRESS REPORT',
+  t('report_title'),
   auth_user()['name'],
   $period_text,
   $personalGoals,

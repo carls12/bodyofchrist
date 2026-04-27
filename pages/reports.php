@@ -22,7 +22,8 @@ $groups = $groupsStmt->fetchAll();
 $groupId = isset($_GET['group_id']) ? (int)$_GET['group_id'] : (int)($groups[0]['id'] ?? 0);
 
 $today = now_ymd();
-$weekStart = monday_of($today);
+$requestedWeek = (string)($_GET['week_start'] ?? '');
+$weekStart = preg_match('/^\d{4}-\d{2}-\d{2}$/', $requestedWeek) ? monday_of($requestedWeek) : monday_of($today);
 $weekEnd = (new DateTimeImmutable($weekStart))->modify('+6 days')->format('Y-m-d');
 $days = [];
 for ($i=0;$i<7;$i++) $days[] = (new DateTimeImmutable($weekStart))->modify("+$i days")->format('Y-m-d');
@@ -139,12 +140,14 @@ include __DIR__ . '/_layout_top.php';
           <option value="<?= (int)$g['id'] ?>" <?= (int)$g['id']===$groupId ? 'selected' : '' ?>><?= e($g['name']) ?></option>
         <?php endforeach; ?>
       </select>
+      <label class="form-label m-0"><?= e(t('goal_history_select_week')) ?></label>
+      <input class="form-control" type="date" name="week_start" value="<?= e($weekStart) ?>" style="max-width:180px">
       <button class="btn btn-outline-primary"><?= e(t('bible_show')) ?></button>
       <div class="text-muted small ms-auto"><?= e(t('reports_week', ['start' => $weekStart, 'end' => $weekEnd])) ?></div>
     </form>
     <?php if ($groupId > 0 && class_exists('Dompdf\\Dompdf')): ?>
       <div class="mt-2">
-        <a class="btn btn-sm btn-outline-secondary" href="<?= e(base_url('action/download-report?group_id='.(int)$groupId.'&pdf=1')) ?>"><?= e(t('reports_download_pdf')) ?></a>
+        <a class="btn btn-sm btn-outline-secondary" href="<?= e(base_url('action/download-report?group_id='.(int)$groupId.'&week_start=' . rawurlencode($weekStart) . '&pdf=1')) ?>"><?= e(t('reports_download_pdf')) ?></a>
       </div>
     <?php endif; ?>
   </div>

@@ -85,6 +85,14 @@ include __DIR__ . '/_layout_top.php';
     <h2 class="h4 mb-1"><?= e(t('goals_title')) ?></h2>
     <div class="text-muted"><?= e(t('goals_week', ['date' => $weekStart])) ?></div>
   </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="<?= e(base_url('goal-history')) ?>"><?= e(t('goal_history_switch_week')) ?></a>
+    <?php if ($goals): ?>
+      <form method="post" action="<?= e(base_url('action/repeat-goals-next-week')) ?>" class="m-0">
+        <button class="btn btn-outline-primary"><?= e(t('goals_repeat_all_next_week')) ?></button>
+      </form>
+    <?php endif; ?>
+  </div>
 </div>
 
 <div class="row g-3">
@@ -144,6 +152,10 @@ include __DIR__ . '/_layout_top.php';
                     <td class="text-end">
                       <?php if (!(int)$g['is_global']): ?>
                         <a class="btn btn-sm btn-outline-secondary" href="<?= e(base_url('goals?edit='.(int)$g['id'])) ?>"><?= e(t('goals_edit')) ?></a>
+                        <form method="post" action="<?= e(base_url('action/carry-goal-next-week')) ?>" class="d-inline">
+                          <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
+                          <button class="btn btn-sm btn-outline-primary"><?= e(t('goals_repeat_next_week')) ?></button>
+                        </form>
                         <form method="post" action="<?= e(base_url('action/delete-goal')) ?>" class="d-inline">
                           <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
                           <button class="btn btn-sm btn-outline-danger" onclick="return confirm('<?= e(t('goals_delete_confirm')) ?>')"><?= e(t('goals_delete')) ?></button>

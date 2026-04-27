@@ -24,7 +24,8 @@ $group = $g->fetch();
 if (!$group) { http_response_code(403); die('Forbidden'); }
 
 $today = now_ymd();
-$weekStart = monday_of($today);
+$requestedWeek = (string)($_GET['week_start'] ?? '');
+$weekStart = preg_match('/^\d{4}-\d{2}-\d{2}$/', $requestedWeek) ? monday_of($requestedWeek) : monday_of($today);
 $weekEnd = (new DateTimeImmutable($weekStart))->modify('+6 days')->format('Y-m-d');
 $days = [];
 for ($i=0;$i<7;$i++) $days[] = (new DateTimeImmutable($weekStart))->modify("+$i days")->format('Y-m-d');
@@ -119,17 +120,17 @@ $html = '<html><head><meta charset="utf-8">' . $css . '</head><body>';
 
 // Group header
 $html .= '<div class="report-header">';
-$html .= '<h1>GROUP DISCIPLESHIP REPORTS</h1>';
+$html .= '<h1>' . htmlspecialchars(t('report_group_title')) . '</h1>';
 $html .= '<div class="report-meta">';
-$html .= 'Group: ' . htmlspecialchars($group['name']) . ' | Period: ' . htmlspecialchars($weekStart) . ' - ' . htmlspecialchars($weekEnd);
+$html .= htmlspecialchars(t('report_group')) . ': ' . htmlspecialchars($group['name']) . ' | ' . htmlspecialchars(t('report_period')) . ': ' . htmlspecialchars(report_date_display(new DateTimeImmutable($weekStart))) . ' - ' . htmlspecialchars(report_date_display(new DateTimeImmutable($weekEnd)));
 $html .= '</div></div>';
 
-$html .= '<div class="section-bar">Report Overview</div>';
+$html .= '<div class="section-bar">' . htmlspecialchars(t('report_overview')) . '</div>';
 $html .= '<table class="metric-grid"><tr>';
-$html .= '<td><span class="metric-label">Group</span><span class="metric-value">' . htmlspecialchars($group['name']) . '</span></td>';
-$html .= '<td><span class="metric-label">Disciples</span><span class="metric-value">' . count($members) . '</span></td>';
-$html .= '<td><span class="metric-label">Start</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekStart))->format('M d, Y')) . '</span></td>';
-$html .= '<td><span class="metric-label">End</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekEnd))->format('M d, Y')) . '</span></td>';
+$html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_group')) . '</span><span class="metric-value">' . htmlspecialchars($group['name']) . '</span></td>';
+$html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_disciples')) . '</span><span class="metric-value">' . count($members) . '</span></td>';
+$html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_start')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display(new DateTimeImmutable($weekStart))) . '</span></td>';
+$html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_end')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display(new DateTimeImmutable($weekEnd))) . '</span></td>';
 $html .= '</tr></table>';
 
 // Generate report for each member
@@ -141,12 +142,12 @@ foreach ($members as $member) {
   
   $html .= '<div class="member-report' . ($firstMember ? ' first-member' : '') . '">';
   $firstMember = false;
-  $html .= '<div class="section-bar">Disciple: ' . htmlspecialchars($member['name']) . '</div>';
+  $html .= '<div class="section-bar">' . htmlspecialchars(t('report_disciple')) . ': ' . htmlspecialchars($member['name']) . '</div>';
   $html .= '<table class="metric-grid"><tr>';
-  $html .= '<td><span class="metric-label">Disciple</span><span class="metric-value">' . htmlspecialchars($member['name']) . '</span></td>';
-  $html .= '<td><span class="metric-label">Week Start</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekStart))->format('M d, Y')) . '</span></td>';
-  $html .= '<td><span class="metric-label">Week End</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable($weekEnd))->format('M d, Y')) . '</span></td>';
-  $html .= '<td><span class="metric-label">Generated</span><span class="metric-value">' . htmlspecialchars((new DateTimeImmutable('now'))->format('M d, Y')) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_disciple')) . '</span><span class="metric-value">' . htmlspecialchars($member['name']) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_week_start')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display(new DateTimeImmutable($weekStart))) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_week_end')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display(new DateTimeImmutable($weekEnd))) . '</span></td>';
+  $html .= '<td><span class="metric-label">' . htmlspecialchars(t('report_generated')) . '</span><span class="metric-value">' . htmlspecialchars(report_date_display(new DateTimeImmutable('now'))) . '</span></td>';
   $html .= '</tr></table>';
   
   if ($memberGoals) {
@@ -164,7 +165,7 @@ foreach ($members as $member) {
       $html .= '<div class="section-bar">' . htmlspecialchars($category) . '</div>';
       
       $html .= '<table class="report-table">';
-      $html .= '<thead><tr><th class="name-col">Metric</th><th>Actual</th><th>Goal</th><th>Status</th></tr></thead>';
+      $html .= '<thead><tr><th class="name-col">' . htmlspecialchars(t('report_metric')) . '</th><th>' . htmlspecialchars(t('report_actual')) . '</th><th>' . htmlspecialchars(t('report_goal')) . '</th><th>' . htmlspecialchars(t('report_status')) . '</th></tr></thead>';
       $html .= '<tbody>';
       
       foreach ($catGoals as $goal) {
@@ -174,16 +175,16 @@ foreach ($members as $member) {
         $percent = $target > 0 ? ($total / $target * 100) : 0;
         
         if ($percent >= 100) {
-          $status = 'Completed';
+          $status = t('report_status_completed');
           $statusClass = 'status-exceeded';
         } elseif ($percent >= 80) {
-          $status = 'On Track';
+          $status = t('report_status_on_track');
           $statusClass = 'status-met';
         } elseif ($percent >= 50) {
-          $status = 'Partial';
+          $status = t('report_status_partial');
           $statusClass = 'status-partial';
         } else {
-          $status = 'Missed';
+          $status = t('report_status_missed');
           $statusClass = 'status-missed';
         }
         
@@ -204,13 +205,13 @@ foreach ($members as $member) {
       $html .= '</div>';
     }
   } else {
-    $html .= '<div class="empty">No goals set for this member this week.</div>';
+    $html .= '<div class="empty">' . htmlspecialchars(t('report_no_member_goals')) . '</div>';
   }
 
   $nextWeekNotes = report_next_week_note($uid, $weekStart, $groupId);
   if (trim($nextWeekNotes) !== '') {
     $html .= '<div class="section">';
-    $html .= '<div class="section-bar">5. Other Planned Important Goals for Next Week</div>';
+    $html .= '<div class="section-bar">' . htmlspecialchars(t('report_next_week_title')) . '</div>';
     $html .= '<div class="planning-note">' . nl2br(htmlspecialchars(trim($nextWeekNotes))) . '</div>';
     $html .= '</div>';
   }
@@ -218,7 +219,7 @@ foreach ($members as $member) {
   $html .= '</div>';
 }
 
-$html .= '<div class="report-footer">BodyOfChrist Discipleship Report</div>';
+$html .= '<div class="report-footer">' . htmlspecialchars(t('report_footer')) . '</div>';
 $html .= '</body></html>';
 
 $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);

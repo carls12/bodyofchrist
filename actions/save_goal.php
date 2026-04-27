@@ -29,7 +29,7 @@ $uid = auth_user()['id'];
 $id = (int)($_POST['id'] ?? 0);
 $label = trim($_POST['label'] ?? '');
 $category = trim($_POST['category'] ?? '');
-$groupTitle = trim((string)($_POST['group_title'] ?? ''));
+$groupTitle = normalize_goal_group_title((string)($_POST['group_title'] ?? ''));
 $target = parse_decimal_input($_POST['target'] ?? 0);
 $unit = trim($_POST['unit'] ?? '');
 

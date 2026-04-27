@@ -5,62 +5,16 @@
 
 <nav class="app-bottom-nav">
   <?php if (auth_check()): ?>
-    <a class="<?= $reqPath==='/' || $reqPath==='/dashboard' ? 'active' : '' ?>" href="<?= e(base_url('dashboard')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M9 21V9h6v12"/></svg>
-      <?= e(t('nav_home')) ?>
-    </a>
-    <a class="<?= $reqPath==='/goals' ? 'active' : '' ?>" href="<?= e(base_url('goals')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-      <?= e(t('nav_goals')) ?>
-    </a>
-    <a class="<?= $reqPath==='/daily-planner' ? 'active' : '' ?>" href="<?= e(base_url('daily-planner')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M5 6h.01"/><path d="M5 12h.01"/><path d="M5 18h.01"/></svg>
-      <?= e(t('nav_daily_planner')) ?>
-    </a>
-    <a class="<?= $reqPath==='/prayer' ? 'active' : '' ?>" href="<?= e(base_url('prayer')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M6 16l4-4 3 3 5-6"/></svg>
-      <?= e(t('nav_timer')) ?>
-    </a>
-    <a class="<?= $reqPath==='/assemblies' || str_starts_with($reqPath, '/assemblies') ? 'active' : '' ?>" href="<?= e(base_url('assemblies')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-6 9 6"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-      <?= e(t('nav_assemblies')) ?>
-    </a>
-    <a class="<?= $reqPath==='/chat' ? 'active' : '' ?>" href="<?= e(base_url('chat')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
-      <?= e(t('nav_chat')) ?>
-    </a>
-    <a class="<?= $reqPath==='/my-reports' ? 'active' : '' ?>" href="<?= e(base_url('my-reports')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 16V8"/><path d="M12 16V4"/><path d="M17 16v-6"/></svg>
-      <?= e(t('nav_my_reports')) ?>
-    </a>
-    <?php if (auth_user()['is_leader']): ?>
-      <a class="<?= $reqPath==='/reports' ? 'active' : '' ?>" href="<?= e(base_url('reports')) ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 16V8"/><path d="M12 16V4"/><path d="M17 16v-6"/></svg>
-        <?= e(t('nav_reports')) ?>
+    <?php foreach ($mobilePrimaryNav as $item): ?>
+      <a class="<?= $item['active'] ? 'active' : '' ?>" href="<?= e($item['href']) ?>">
+        <?= $item['icon'] ?>
+        <?= e($item['label']) ?>
       </a>
-    <?php endif; ?>
-    <a class="<?= $reqPath==='/profile' ? 'active' : '' ?>" href="<?= e(base_url('profile')) ?>">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <?= e(t('nav_profile')) ?>
-    </a>
-    <?php if (is_main_admin()): ?>
-      <a class="<?= $reqPath==='/admin/users' ? 'active' : '' ?>" href="<?= e(base_url('admin/users')) ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/><path d="M19 8v6"/></svg>
-        <?= e(t('nav_admin')) ?>
-      </a>
-    <?php endif; ?>
-    <?php if (is_regional_leader() || is_main_admin()): ?>
-      <a class="<?= $reqPath==='/admin/assemblies' ? 'active' : '' ?>" href="<?= e(base_url('admin/assemblies')) ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-6 9 6"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
-        <?= e(t('admin_assemblies')) ?>
-      </a>
-    <?php endif; ?>
-    <?php if (is_national_leader() || is_main_admin()): ?>
-      <a class="<?= $reqPath==='/admin/national' ? 'active' : '' ?>" href="<?= e(base_url('admin/national')) ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/><path d="M6 3v18"/><path d="M12 3v18"/><path d="M18 3v18"/></svg>
-        <?= e(t('admin_national_reports')) ?>
-      </a>
-    <?php endif; ?>
+    <?php endforeach; ?>
+    <button type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMoreSheet" aria-controls="mobileMoreSheet" class="<?= array_filter($mobileMoreNav, fn($item) => !empty($item['active'])) ? 'active' : '' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+      Mehr
+    </button>
   <?php else: ?>
     <a class="<?= $reqPath==='/login' ? 'active' : '' ?>" href="<?= e(base_url('login')) ?>">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
@@ -72,6 +26,25 @@
     </a>
   <?php endif; ?>
 </nav>
+
+<?php if (auth_check()): ?>
+  <div class="offcanvas offcanvas-bottom app-mobile-sheet" tabindex="-1" id="mobileMoreSheet" aria-labelledby="mobileMoreSheetLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="mobileMoreSheetLabel"><?= e(t('app')) ?></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="app-mobile-sheet-list">
+        <?php foreach ($mobileMoreNav as $item): ?>
+          <a class="app-mobile-sheet-link <?= $item['active'] ? 'active' : '' ?>" href="<?= e($item['href']) ?>">
+            <?= $item['icon'] ?>
+            <span><?= e($item['label']) ?></span>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
